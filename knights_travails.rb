@@ -1,17 +1,3 @@
-class Knight
-    def initialize(coordinates)
-        @x = coordinates[0]
-        @y = coordinates[1]
-    end
-
-    def go_to(destination)
-        board = Board.new()
-        now_at = board.squares.find { |square| [square.x, square.y] == [@x, @y] } 
-        board.shortest_path([[[],now_at]], destination)
-    end
-
-end
-
 class Square
 
     attr_reader :x, :y
@@ -43,8 +29,8 @@ class Board
         squares.each do |square|
             x = square.x
             y = square.y
-            square.children = squares.select do |s|
-                case s.array
+            square.children = squares.select do |sq|
+                case sq.array
                     when [x+1, y+2], [x-1, y-2], [x+1, y-2], [x-1, y+2], [x+2, y+1], [x-2, y-1], [x+2, y-1], [x-2, y+1] then true
                 end
             end
@@ -52,17 +38,14 @@ class Board
         squares
     end
 
-    def shortest_path(queue, going_to)
-        new_queue = []
-        queue.each do |path_and_square|
-            path = path_and_square[0]
-            square = path_and_square[1]
-            return path.push(square.array) if square.array == going_to
-            square.visited = true
-            unvisited_children = square.children.select { |child| !child.visited } 
-            unvisited_children.each do |unvisited_child|
+    def shortest_path(queue, going_to, new_queue = [])
+        queue.each do |now_at|
+            return now_at[:path].push(now_at[:square].array) if now_at[:square].array == going_to
+            unvisited = now_at[:square].children.select { |child| !child.visited }
+            now_at[:square].visited = true
+            unvisited.each do |unvisited_child|
                 unvisited_child.visited = true
-                new_queue.push([Array.new(path).push(square.array), unvisited_child])
+                new_queue.push({path: Array.new(now_at[:path]).push(now_at[:square].array), square: unvisited_child})
             end
         end
         new_queue.empty? ? [] : shortest_path(new_queue, going_to)
@@ -71,10 +54,10 @@ class Board
 end
 
 def knight_moves(start_point, end_point)
-    knight = Knight.new(start_point)
-    steps = knight.go_to(end_point)
-    puts "You reached the end point in #{steps.length-1} steps! Here's the path:"
-    p steps
+    board = Board.new()
+    start = board.squares.find { |square| [square.x, square.y] == [start_point[0], start_point[1]] } 
+    steps = board.shortest_path([{path:[],square:start}], end_point)
+    puts "You reached the end point in #{steps.length-1} steps! Here's the path:\n" + steps.to_s
 end
 
 knight_moves([0,0], [7,7])
