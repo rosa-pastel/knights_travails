@@ -7,7 +7,7 @@ class Knight
     def go_to(destination)
         board = Board.new()
         now_at = board.squares.find { |square| [square.x, square.y] == [@x, @y] } 
-        board.shortest_path(now_at, destination)
+        board.shortest_path([[[],now_at]], destination)
     end
 
 end
@@ -15,13 +15,14 @@ end
 class Square
 
     attr_reader :x, :y
-    attr_accessor :children, :array
+    attr_accessor :children, :array, :visited
 
     def initialize(x, y)
         @x = x
         @y = y
         @array = [x, y]
         @children = []
+        @visited = false
     end
 
 end
@@ -51,31 +52,33 @@ class Board
         squares
     end
 
-    def shortest_path(now_at, going_to, parent = now_at, shortest_path = [], path = [])
-        p square = now_at.array
-        if (square == going_to) && (shortest_path.empty? || path.length < shortest_path.length)
-            return path
-        elsif (square != going_to) && (!path[0..-2].include?(square))
-            path = path.push(square)
-            child = now_at.children[0]
-            shortest_path = shortest_path(child, going_to, now_at, shortest_path, path)
-        elsif (square != going_to) && (path[0..-2].include?(square))
-            index = parent.children.find_index(now_at) + 1
-            if parent.children[index].nil?
-                return shortest_path
-            else
-                shortest_path = shortest_path(parent, going_to, parent, shortest_path, path)
+    def shortest_path(queue, going_to)
+        new_queue = []
+        queue.each do |path_and_square|
+            path = path_and_square[0]
+            square = path_and_square[1]
+            return path.push(square.array) if square.array == going_to
+            square.visited = true
+            unvisited_children = square.children.select { |child| !child.visited } 
+            unvisited_children.each do |unvisited_child|
+                unvisited_child.visited = true
+                new_queue.push([Array.new(path).push(square.array), unvisited_child])
             end
         end
-        shortest_path
+        new_queue.empty? ? [] : shortest_path(new_queue, going_to)
     end
+
 end
 
 def knight_moves(start_point, end_point)
     knight = Knight.new(start_point)
     steps = knight.go_to(end_point)
-    puts "You reached the end point in #{steps.length} steps! Here's the path:"
+    puts "You reached the end point in #{steps.length-1} steps! Here's the path:"
     p steps
 end
 
 knight_moves([0,0], [7,7])
+knight_moves([0,0],[1,2])
+knight_moves([0,0],[3,3])
+knight_moves([3,3],[0,0])
+knight_moves([3,3],[4,3])
